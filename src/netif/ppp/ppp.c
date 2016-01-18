@@ -471,6 +471,7 @@ static err_t ppp_netif_output(struct netif *netif, struct pbuf *pb, u16_t protoc
     goto err_rte_drop;
   }
 
+#if CCP_SUPPORT
 #if MPPE_SUPPORT
   /* If MPPE is required, refuse any IP packet until we are able to crypt them. */
   if (pcb->settings.require_mppe &&
@@ -479,6 +480,7 @@ static err_t ppp_netif_output(struct netif *netif, struct pbuf *pb, u16_t protoc
     goto err_rte_drop;
   }
 #endif /* MPPE_SUPPORT */
+#endif /* CCP_SUPPORT */
 
 #if VJ_SUPPORT && LWIP_TCP
   /*
@@ -508,7 +510,7 @@ static err_t ppp_netif_output(struct netif *netif, struct pbuf *pb, u16_t protoc
 #endif /* VJ_SUPPORT && LWIP_TCP */
 
 #if CCP_SUPPORT
-  if (pcb->ccp_is_up) {
+  if (pcb->ccp_is_up && pcb->ccp_transmit_method != 0) {
 #if MPPE_SUPPORT
     err_t err;
 #endif /* MPPE_SUPPORT */
@@ -528,6 +530,7 @@ static err_t ppp_netif_output(struct netif *netif, struct pbuf *pb, u16_t protoc
       return err;
 #endif /* MPPE_SUPPORT */
     default:
+      PPPDEBUG(LOG_ERR, ("ppp_netif_output[%d]: bad TX method\n", pcb->netif->num));
       goto err_rte_drop; /* Cannot really happen, we only negotiate what we are able to do */
     }
   }
@@ -786,6 +789,7 @@ void ppp_input(ppp_pcb *pcb, struct pbuf *pb) {
       break;
 #endif /* MPPE_SUPPORT */
     default:
+      PPPDEBUG(LOG_ERR, ("ppp_input[%d]: bad RX method\n", pcb->netif->num));
       goto drop; /* Cannot really happen, we only negotiate what we are able to do */
     }
 
